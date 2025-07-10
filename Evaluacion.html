@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Clasificador de Basura con Teachable Machine</title>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.21.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+<style>
+  /* Fuentes y fondo */
+  @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
+
+  body {
+    font-family: 'Montserrat', sans-serif;
+    background: linear-gradient(135deg, #4CAF50 0%, #81C784 100%);
+    color: #fff;
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+  }
+
+  /* Contenedor principal */
+  .container {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    padding: 30px 40px;
+    max-width: 400px;
+    width: 100%;
+    text-align: center;
+    backdrop-filter: blur(10px);
+  }
+
+  h1 {
+    margin-bottom: 25px;
+    font-weight: 700;
+    font-size: 1.8rem;
+    letter-spacing: 1.5px;
+    text-shadow: 1px 1px 6px rgba(0,0,0,0.3);
+  }
+
+  input[type="file"] {
+    display: inline-block;
+    padding: 12px 20px;
+    border-radius: 50px;
+    border: none;
+    background: #2E7D32;
+    color: #fff;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  }
+  input[type="file"]:hover {
+    background: #1B5E20;
+  }
+
+  #preview {
+    margin-top: 25px;
+    max-width: 100%;
+    height: auto;
+    border-radius: 15px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.3);
+    border: 3px solid #A5D6A7;
+    transition: transform 0.3s ease;
+  }
+  #preview:hover {
+    transform: scale(1.05);
+  }
+
+  #result {
+    margin-top: 30px;
+    font-size: 1.3rem;
+    font-weight: 700;
+    padding: 12px 20px;
+    background: rgba(0,0,0,0.25);
+    border-radius: 12px;
+    box-shadow: inset 0 0 10px rgba(255,255,255,0.2);
+    user-select: none;
+  }
+
+  /* Responsive */
+  @media (max-width: 480px) {
+    .container {
+      padding: 25px 20px;
+      max-width: 90vw;
+    }
+    h1 {
+      font-size: 1.5rem;
+    }
+    #result {
+      font-size: 1.1rem;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Clasificador de Basura</h1>
+
+  <input type="file" id="inputImage" accept="image/*" />
+  <br />
+  <img id="preview" src="" alt="Vista previa" />
+  <div id="result">Sube una imagen para clasificar el tipo de basura</div>
+</div>
+
+<script>
+  const URL = "https://teachablemachine.withgoogle.com/models/wVvPj9w8B/";
+
+  let model, maxPredictions;
+
+  const imageElement = document.getElementById("preview");
+  const resultElement = document.getElementById("result");
+  const inputImage = document.getElementById("inputImage");
+
+  async function init() {
+    const modelURL = URL + "model.json";
+    const metadataURL = URL + "metadata.json";
+
+    model = await tmImage.load(modelURL, metadataURL);
+    maxPredictions = model.getTotalClasses();
+  }
+
+  async function classifyImage(img) {
+    const prediction = await model.predict(img);
+    let highestProb = 0;
+    let className = "";
+    prediction.forEach(pred => {
+      if (pred.probability > highestProb) {
+        highestProb = pred.probability;
+        className = pred.className;
+      }
+    });
+    resultElement.textContent = `Tipo de basura: ${className} (confianza ${(highestProb * 100).toFixed(2)}%)`;
+  }
+
+  inputImage.addEventListener("change", (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      imageElement.src = e.target.result;
+      imageElement.onload = async () => {
+        await classifyImage(imageElement);
+      };
+    };
+    reader.readAsDataURL(file);
+  });
+
+  init();
+</script>
+
+</body>
+</html>
